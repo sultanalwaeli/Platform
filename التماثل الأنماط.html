@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<!-- Playables SDK -->
+<script>// Playables SDK v1.0.0
+// Game lifecycle bridge: rAF-based game-ready detection + event communication
+(function() {
+  'use strict';
+
+  // Idempotency: skip if already initialized (e.g., server-side injection
+  // followed by client-side inject-javascript via the Bloks webview component).
+  if (window.playablesSDK) return;
+
+  var HANDLER_NAME = 'playablesGameEventHandler';
+  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
+  var RAF_FRAME_THRESHOLD = 3;
+
+  var gameReadySent = false;
+  var firstInteractionSent = false;
+  var errorSent = false;
+  var frameCount = 0;
+  var originalRAF = window.requestAnimationFrame;
+
+  // --- Transport Layer ---
+
+  function hasIOSBridge() {
+    return !!(window.webkit &&
+              window.webkit.messageHandlers &&
+              window.webkit.messageHandlers[HANDLER_NAME]);
+  }
+
+  function hasAndroidBridge() {
+    return !!(window[ANDROID_BRIDGE_NAME] &&
+              typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
+  }
+
+  function isInIframe() {
+    return !!(window.parent && window.parent !== window);
+  }
+
+  function sendEvent(eventName, payload) {
+    var message = {
+      type: eventName,
+      payload: payload || {},
+      timestamp: Date.now()
+    };
+
+    if (hasIOSBridge()) {
+      try {
+        window.webkit.messageHandlers[HANDLER_NAME].postMessage(message);
+      } catch (e) { /* ignore */ }
+      return;
+    }
+
+    if (hasAndroidBridge()) {
+    try {
+      var p = payload || {};
+      p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
+      window[ANDROID_BRIDGE_NAME].postEvent(
+        eventName,
+        JSON.stringify(p)
+      );
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+    if (isInIframe()) {
+      try {
+        window.parent.postMessage(message, '*');
+      } catch (e) { /* ignore */ }
+      return;
+    }
+  }
+
+  // --- rAF Game-Ready Detection ---
+
+  function onFrame() {
+    if (gameReadySent) return;
+
+    frameCount++;
+    if (frameCount >= RAF_FRAME_THRESHOLD) {
+      gameReadySent = true;
+      sendEvent('game_ready', {
+        frame_count: frameCount,
+        detected_at: Date.now()
+      });
+      return;
+    }
+
+    originalRAF.call(window, onFrame);
+  }
+
+  if (originalRAF) {
+    window.requestAnimationFrame = function(callback) {
+      if (!gameReadySent) {
+        return originalRAF.call(window, function(timestamp) {
+          frameCount++;
+          if (frameCount >= RAF_FRAME_THRESHOLD && !gameReadySent) {
+            gameReadySent = true;
+            sendEvent('game_ready', {
+              frame_count: frameCount,
+              detected_at: Date.now()
+            });
+          }
+          callback(timestamp);
+        });
+      }
+      return originalRAF.call(window, callback);
+    };
+  }
+
+  // --- First User Interaction Detection ---
+
+  function setupFirstInteractionDetection() {
+    var events = ['touchstart', 'mousedown', 'keydown'];
+
+    function onFirstInteraction() {
+      if (firstInteractionSent) return;
+      firstInteractionSent = true;
+      sendEvent('user_interaction_start', null);
+
+      for (var i = 0; i < events.length; i++) {
+        document.removeEventListener(events[i], onFirstInteraction, true);
+      }
+    }
+
+    for (var i = 0; i < events.length; i++) {
+      document.addEventListener(events[i], onFirstInteraction, true);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
+  } else {
+    setupFirstInteractionDetection();
+  }
+
+  // --- Auto Error Capture ---
+
+  window.addEventListener('error', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    sendEvent('error', {
+      message: event.message || 'Unknown error',
+      source: event.filename || '',
+      lineno: event.lineno || 0,
+      colno: event.colno || 0,
+      auto_captured: true
+    });
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    var reason = event.reason;
+    sendEvent('error', {
+      message: (reason instanceof Error) ? reason.message : String(reason),
+      type: 'unhandled_promise_rejection',
+      auto_captured: true
+    });
+  });
+
+  // --- Public API ---
+
+  window.playablesSDK = {
+    complete: function(score) {
+      sendEvent('game_ended', {
+        score: score,
+        completed: true
+      });
+    },
+
+    error: function(message) {
+      if (errorSent) return;
+      errorSent = true;
+      sendEvent('error', {
+        message: message || 'Unknown error',
+        auto_captured: false
+      });
+    },
+
+    sendEvent: function(eventName, payload) {
+      if (!eventName || typeof eventName !== 'string') return;
+      sendEvent(eventName, payload);
+    }
+  };
+
+  // Kick off rAF detection in case no game code calls rAF immediately
+  if (originalRAF) {
+    originalRAF.call(window, onFrame);
+  }
+})();</script>
+<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>انعكاس البلاط في خطيّ مرآة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: 'Cairo', 'Tajawal', sans-serif; background:#ffffff; }
+  .puzzle-grid { display:grid; grid-template-columns: repeat(8, 45px); grid-template-rows: repeat(8, 45px); direction:ltr; position:relative; }
+  .grid-cell { width:45px; height:45px; border:1px solid #e5e7eb; position:relative; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; cursor:pointer; background:#fff; transition: all .15s; user-select:none; }
+  .grid-cell:hover { filter: brightness(0.95); }
+  .grid-cell.locked { cursor:default; }
+  @media (max-width:640px){ .puzzle-grid{ grid-template-columns: repeat(8, 32px); grid-template-rows: repeat(8, 32px);} .grid-cell{ width:32px; height:32px; font-size:14px;} }
+  .mirror-v { position:absolute; left:calc(4 * 45px); top:-4px; bottom:-4px; width:0; border-left:4px dashed #ef4444; z-index:20; pointer-events:none; }
+  .mirror-h { position:absolute; top:calc(4 * 45px); left:-4px; right:-4px; height:0; border-top:4px dashed #ef4444; z-index:20; pointer-events:none; }
+  @media (max-width:640px){ .mirror-v{ left:calc(4 * 32px);} .mirror-h{ top:calc(4 * 32px);} }
+  .letter-badge { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; color:#111827; text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff; pointer-events:none; z-index:5; font-weight:900; }
+  @media (max-width:640px){ .letter-badge{ font-size:16px; } }
+  .color-btn { width:54px; height:54px; border-radius:16px; border:4px solid transparent; cursor:pointer; transition: all .2s; box-shadow: 0 2px 6px rgba(0,0,0,.1); }
+  .color-btn.active { border-color:#111827; transform:translateY(-2px) scale(1.05); box-shadow:0 6px 14px rgba(0,0,0,.18); }
+  .color-btn span { display:none; }
+  .letter-pill { width:44px; height:44px; border-radius:12px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; cursor:pointer; border:2px solid #e5e7eb; transition:.2s; }
+  .letter-pill:hover { background:#111827; color:white; border-color:#111827; transform:translateY(-2px); }
+  .fraction { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; font-size:0.75em; line-height:1; }
+  .fraction > span:first-child { border-bottom:2px solid currentColor; padding:0 4px 2px; }
+  .fraction > span:last-child { padding:2px 4px 0; }
+  .pulse-ring { animation: pulse 1.2s ease-out 2; box-shadow:0 0 0 4px #f59e0b inset; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 #f59e0b inset} 100%{box-shadow:0 0 0 8px transparent inset} }
+</style>
+</head>
+<body class="min-h-screen text-gray-900">
+  <div class="max-w-5xl mx-auto px-4 py-6 md:py-10">
+    <!-- Header -->
+    <header class="text-center mb-6">
+      <h1 class="text-[22px] md:text-3xl font-black leading-snug mb-4">
+        إذا تم عكس نمط البلاط الآتي في خطيّ مِرآة، فماذا سيكون لون هذه المربعات؟
+      </h1>
+      <div class="flex flex-wrap justify-center gap-2 md:gap-3 mb-4" id="topLetters">
+        <!-- letters injected -->
+      </div>
+      <p class="text-gray-600 text-base md:text-lg">
+        على ورق مربعات، أعد رسم هذا النمط وتلوين باقي النمط كما تم عكسه في خطيّ المِرآة.
+      </p>
+    </header>
+
+    <!-- Puzzle -->
+    <main class="flex flex-col items-center">
+      <div id="puzzle" class="bg-white rounded-[28px] shadow-xl border border-gray-100 p-3 md:p-6">
+        <div class="relative">
+          <div id="grid" class="puzzle-grid rounded-lg overflow-hidden"></div>
+          <div class="mirror-v"></div>
+          <div class="mirror-h"></div>
+        </div>
+      </div>
+
+      <!-- Palette -->
+      <div class="w-full max-w-2xl mt-6">
+        <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-bold text-lg">لوحة الألوان</h2>
+            <p class="text-xs text-gray-500">اختر لوناً ثم اضغط على المربع</p>
+          </div>
+          <div id="palette" class="flex flex-wrap justify-center gap-3 md:gap-4"></div>
+        </div>
+      </div>
+
+      <!-- Steps -->
+      <div class="w-full max-w-3xl grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
+        <button id="step1" class="py-3.5 px-4 rounded-2xl bg-gradient-to-b from-violet-600 to-violet-700 text-white font-bold shadow-lg shadow-violet-200 hover:translate-y-[-1px] active:translate-y-[1px] transition">الخطوة ١: اعكس عمودياً</button>
+        <button id="step2" class="py-3.5 px-4 rounded-2xl bg-gradient-to-b from-sky-600 to-sky-700 text-white font-bold shadow-lg shadow-sky-200 hover:translate-y-[-1px] active:translate-y-[1px] transition">الخطوة ٢: اعكس أفقياً</button>
+        <button id="step3" class="py-3.5 px-4 rounded-2xl bg-gradient-to-b from-emerald-600 to-emerald-700 text-white font-bold shadow-lg shadow-emerald-200 hover:translate-y-[-1px] active:translate-y-[1px] transition">الخطوة ٣: اعكس الاثنين معاً</button>
+      </div>
+
+      <div class="w-full max-w-3xl grid grid-cols-2 gap-3 mt-3">
+        <button id="clearCustom" class="py-3 px-4 rounded-2xl bg-white border-2 border-gray-200 font-bold hover:bg-gray-50">مسح تلويني</button>
+        <button id="capture" class="py-3 px-4 rounded-2xl bg-gray-900 text-white font-bold hover:bg-black flex items-center justify-center gap-2">📸 صوّر النشاط</button>
+      </div>
+
+      <!-- Answers -->
+      <div class="w-full max-w-3xl mt-8 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+        <h3 class="font-black text-xl mb-4 text-center">اختبر إجاباتك</h3>
+        <div id="answers" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+        <button id="check" class="w-full mt-4 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-lg shadow-md">تحقق من الإجابات</button>
+        <div id="result" class="mt-4 text-center hidden"></div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center mt-10 pt-6 border-t border-gray-100">
+      <p class="font-bold">إعداد: وليد الصلتي المحمدي</p>
+      <div class="flex justify-center gap-4 mt-2 text-sm">
+        <a href="https://www.instagram.com/walid.saltit/" target="_blank" class="text-pink-600 hover:underline">انستجرام</a>
+        <span class="text-gray-300">|</span>
+        <a href="https://twitter.com/walid_salti" target="_blank" class="text-sky-600 hover:underline">تويتر</a>
+      </div>
+    </footer>
+  </div>
+
+<script>
+const toEastern = s => String(s).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+
+const COLORS = [
+  {code:'#8BC34A', name:'أخضر'},
+  {code:'#4DD0E1', name:'سماوي'},
+  {code:'#FDD835', name:'أصفر'},
+  {code:'#FB8C00', name:'برتقالي'},
+  {code:'#7B1FA2', name:'بنفسجي'},
+  {code:'#E91E63', name:'أحمر'},
+];
+
+const preset = {
+  '1-5':'#8BC34A','1-6':'#4DD0E1','1-7':'#FDD835','1-8':'#4DD0E1',
+  '2-5':'#FB8C00','2-6':'#7B1FA2','2-7':'#8BC34A','2-8':'#7B1FA2',
+  '3-5':'#FDD835','3-6':'#FB8C00','3-7':'#E91E63','3-8':'#4DD0E1',
+  '4-5':'#4DD0E1','4-6':'#8BC34A','4-7':'#E91E63','4-8':'#FDD835',
+};
+
+const letters = {
+  'أ':{r:2,c:4},
+  'ب':{r:8,c:8},
+  'ج':{r:4,c:2},
+  'د':{r:7,c:6},
+  'هـ':{r:5,c:4},
+  'و':{r:5,c:2},
+  'ز':{r:7,c:2},
+};
+
+const correctAnswers = {
+  'أ':'برتقالي',
+  'ب':'سماوي',
+  'ج':'أحمر',
+  'د':'بنفسجي',
+  'هـ':'سماوي',
+  'و':'أحمر',
+  'ز':'أخضر',
+};
+
+const grid = document.getElementById('grid');
+let selectedColor = null;
+
+// Build grid
+for(let r=1; r<=8; r++){
+  for(let c=1; c<=8; c++){
+    const cell = document.createElement('div');
+    cell.className='grid-cell';
+    cell.dataset.r=r; cell.dataset.c=c; cell.dataset.key=`${r}-${c}`;
+    cell.id=`cell-${r}-${c}`;
+    if(preset[`${r}-${c}`]){
+      cell.style.background = preset[`${r}-${c}`];
+      cell.classList.add('locked');
+      cell.dataset.locked='1';
+    }
+    grid.appendChild(cell);
+  }
+}
+
+// Add letters
+Object.entries(letters).forEach(([ltr,pos])=>{
+  const cell = document.getElementById(`cell-${pos.r}-${pos.c}`);
+  const badge = document.createElement('div');
+  badge.className='letter-badge';
+  badge.textContent=ltr;
+  cell.appendChild(badge);
+  cell.dataset.letter=ltr;
+});
+
+// Top letters
+const topLetters = document.getElementById('topLetters');
+Object.keys(letters).forEach(l=>{
+  const b = document.createElement('button');
+  b.className='letter-pill';
+  b.innerHTML=`<span>(</span> ${l} <span>)</span>`;
+  b.onclick=()=> highlightCell(letters[l].r, letters[l].c);
+  topLetters.appendChild(b);
+});
+
+function highlightCell(r,c){
+  const cell = document.getElementById(`cell-${r}-${c}`);
+  cell.scrollIntoView({behavior:'smooth', block:'center'});
+  cell.classList.add('pulse-ring');
+  setTimeout(()=>cell.classList.remove('pulse-ring'),1500);
+}
+
+// Palette
+const palette = document.getElementById('palette');
+COLORS.forEach(col=>{
+  const wrap = document.createElement('div');
+  wrap.className='flex flex-col items-center gap-1';
+  const btn = document.createElement('button');
+  btn.className='color-btn';
+  btn.style.background=col.code;
+  btn.title=col.name;
+  btn.dataset.color=col.code;
+  btn.dataset.name=col.name;
+  btn.onclick=()=>{
+    document.querySelectorAll('.color-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedColor = col.code;
+  };
+  const label = document.createElement('span');
+  label.className='text-xs';
+  label.textContent=col.name;
+  wrap.appendChild(btn); wrap.appendChild(label);
+  palette.appendChild(wrap);
+});
+document.querySelector('.color-btn').click();
+
+// Paint cells
+grid.addEventListener('click', e=>{
+  const cell = e.target.closest('.grid-cell');
+  if(!cell || cell.dataset.locked) return;
+  if(!selectedColor) return;
+  cell.style.background = selectedColor;
+  cell.dataset.custom='1';
+});
+
+// Steps
+function getColor(r,c){ return document.getElementById(`cell-${r}-${c}`).style.background; }
+function setColor(r,c,color,lock=false){
+  const cell = document.getElementById(`cell-${r}-${c}`);
+  if(cell.dataset.locked && !lock) return;
+  cell.style.background = color;
+  if(lock){ cell.dataset.locked='1'; cell.classList.add('locked'); }
+}
+
+document.getElementById('step1').onclick=()=>{
+  for(let r=1;r<=4;r++){
+    for(let c=5;c<=8;c++){
+      const color = getColor(r,c);
+      const c2 = 9 - c;
+      setColor(r,c2,color,true);
+    }
+  }
+};
+document.getElementById('step2').onclick=()=>{
+  for(let r=1;r<=4;r++){
+    for(let c=5;c<=8;c++){
+      const color = getColor(r,c);
+      const r2 = 9 - r;
+      setColor(r2,c,color,true);
+    }
+  }
+};
+document.getElementById('step3').onclick=()=>{
+  for(let r=1;r<=4;r++){
+    for(let c=5;c<=8;c++){
+      const color = getColor(r,c);
+      const r2 = 9 - r; const c2 = 9 - c;
+      setColor(r2,c2,color,true);
+    }
+  }
+};
+
+document.getElementById('clearCustom').onclick=()=>{
+  document.querySelectorAll('.grid-cell').forEach(cell=>{
+    if(cell.dataset.custom && !preset[cell.dataset.key]){
+      cell.style.background='';
+      delete cell.dataset.custom;
+    }
+  });
+};
+
+// Answers UI
+const answersDiv = document.getElementById('answers');
+Object.keys(letters).forEach(l=>{
+  const box = document.createElement('div');
+  box.className='flex items-center gap-2 bg-gray-50 rounded-xl p-2 border';
+  box.innerHTML = `<span class="w-8 h-8 flex items-center justify-center font-black bg-white rounded-lg border">${l}</span>`;
+  const sel = document.createElement('select');
+  sel.className='flex-1 bg-transparent outline-none py-1';
+  sel.dataset.letter=l;
+  sel.innerHTML = `<option value="">اختر اللون</option>` + COLORS.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
+  box.appendChild(sel);
+  answersDiv.appendChild(box);
+});
+
+document.getElementById('check').onclick=()=>{
+  let score=0;
+  const total=Object.keys(correctAnswers).length;
+  let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-right">';
+  Object.entries(correctAnswers).forEach(([l,ans])=>{
+    const sel = document.querySelector(`select[data-letter="${l}"]`);
+    const val = sel.value;
+    const ok = val===ans;
+    if(ok) score++;
+    html += `<div class="p-2 rounded-lg ${ok?'bg-green-50 border border-green-200':'bg-red-50 border border-red-200'}">
+      <b>${l}</b>: ${val||'—'} ${ok?'✅':'❌'} <span class="text-gray-500">(${ans})</span>
+    </div>`;
+  });
+  html+='</div>';
+  const result = document.getElementById('result');
+  result.innerHTML = `
+    <div class="text-2xl font-black mb-2">نتيجتك: ${toEastern(score)} من ${toEastern(total)}</div>
+    ${html}
+  `;
+  result.classList.remove('hidden');
+  window.scrollTo({top:result.offsetTop-80, behavior:'smooth'});
+};
+
+// Capture
+document.getElementById('capture').onclick=async()=>{
+  const puzzle = document.getElementById('puzzle');
+  const canvas = await html2canvas(puzzle, {backgroundColor:'#ffffff', scale:2, useCORS:true});
+  canvas.toBlob(async (blob)=>{
+    const file = new File([blob], 'walid-saltit-mirror2.png', {type:'image/png'});
+    try{
+      if(navigator.canShare && navigator.canShare({files:[file]}) && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)){
+        await navigator.share({files:[file], title:'انعكاس البلاط', text:'نشاط انعكاس البلاط في خطي مرآة'});
+      }else{
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href=url; a.download='walid-saltit-mirror2.png'; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      }
+    }catch(e){ console.log(e); }
+  });
+};
+
+// Convert any western digits in static text to Eastern on load
+function walk(node){
+  if(node.nodeType===3){
+    node.textContent = toEastern(node.textContent);
+  }else{
+    node.childNodes.forEach(walk);
+  }
+}
+walk(document.body);
+</script>
+</body>
+</html>
