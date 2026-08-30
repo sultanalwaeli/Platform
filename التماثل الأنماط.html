@@ -1,526 +1,1077 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<!-- Playables SDK -->
-<script>// Playables SDK v1.0.0
-// Game lifecycle bridge: rAF-based game-ready detection + event communication
-(function() {
-  'use strict';
-
-  // Idempotency: skip if already initialized (e.g., server-side injection
-  // followed by client-side inject-javascript via the Bloks webview component).
-  if (window.playablesSDK) return;
-
-  var HANDLER_NAME = 'playablesGameEventHandler';
-  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
-  var RAF_FRAME_THRESHOLD = 3;
-
-  var gameReadySent = false;
-  var firstInteractionSent = false;
-  var errorSent = false;
-  var frameCount = 0;
-  var originalRAF = window.requestAnimationFrame;
-
-  // --- Transport Layer ---
-
-  function hasIOSBridge() {
-    return !!(window.webkit &&
-              window.webkit.messageHandlers &&
-              window.webkit.messageHandlers[HANDLER_NAME]);
-  }
-
-  function hasAndroidBridge() {
-    return !!(window[ANDROID_BRIDGE_NAME] &&
-              typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
-  }
-
-  function isInIframe() {
-    return !!(window.parent && window.parent !== window);
-  }
-
-  function sendEvent(eventName, payload) {
-    var message = {
-      type: eventName,
-      payload: payload || {},
-      timestamp: Date.now()
-    };
-
-    if (hasIOSBridge()) {
-      try {
-        window.webkit.messageHandlers[HANDLER_NAME].postMessage(message);
-      } catch (e) { /* ignore */ }
-      return;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منصة تواصل - مدرسة محمد بن سليمان الغافري</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      font-family: 'El Messiri', sans-serif;
+      color: #fff;
+      min-height: 100vh;
     }
-
-    if (hasAndroidBridge()) {
-    try {
-      var p = payload || {};
-      p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
-      window[ANDROID_BRIDGE_NAME].postEvent(
-        eventName,
-        JSON.stringify(p)
-      );
-    } catch (e) { /* ignore */ }
-    return;
-  }
-
-    if (isInIframe()) {
-      try {
-        window.parent.postMessage(message, '*');
-      } catch (e) { /* ignore */ }
-      return;
+    .card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-  }
-
-  // --- rAF Game-Ready Detection ---
-
-  function onFrame() {
-    if (gameReadySent) return;
-
-    frameCount++;
-    if (frameCount >= RAF_FRAME_THRESHOLD) {
-      gameReadySent = true;
-      sendEvent('game_ready', {
-        frame_count: frameCount,
-        detected_at: Date.now()
-      });
-      return;
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
     }
-
-    originalRAF.call(window, onFrame);
-  }
-
-  if (originalRAF) {
-    window.requestAnimationFrame = function(callback) {
-      if (!gameReadySent) {
-        return originalRAF.call(window, function(timestamp) {
-          frameCount++;
-          if (frameCount >= RAF_FRAME_THRESHOLD && !gameReadySent) {
-            gameReadySent = true;
-            sendEvent('game_ready', {
-              frame_count: frameCount,
-              detected_at: Date.now()
-            });
-          }
-          callback(timestamp);
-        });
+    .logo-glow {
+      filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.7));
+    }
+    .input-field {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+    }
+    .input-field:focus {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #ffd700;
+    }
+    .input-field::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+    .textarea-field {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      resize: vertical;
+      min-height: 120px;
+    }
+    .textarea-field:focus {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #ffd700;
+    }
+    .select-field {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+    }
+    .select-field option {
+      background: #1e3c72;
+      color: #fff;
+    }
+    .select-field:focus {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #ffd700;
+    }
+    .button-primary {
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+      color: #1e3c72;
+      font-weight: bold;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .button-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    .button-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .button-secondary {
+      background: linear-gradient(135deg, #4A90E2, #50A5E2);
+      color: #fff;
+      font-weight: bold;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .button-secondary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    .button-whatsapp {
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      color: #fff;
+      font-weight: bold;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .button-whatsapp:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    .button-featured {
+      background: linear-gradient(135deg, #ffd700, #ffed4e);
+      color: #1e3c72;
+      font-weight: bold;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: 2px solid rgba(255, 215, 0, 0.5);
+    }
+    .button-featured:hover:not(:disabled) {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 12px 25px rgba(255, 215, 0, 0.3);
+    }
+    .success-message {
+      background: rgba(76, 175, 80, 0.2);
+      border: 1px solid rgba(76, 175, 80, 0.5);
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px 0;
+      text-align: center;
+    }
+    .error-message {
+      background: rgba(244, 67, 54, 0.2);
+      border: 1px solid rgba(244, 67, 54, 0.5);
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px 0;
+      text-align: center;
+    }
+    .warning-message {
+      background: rgba(255, 152, 0, 0.2);
+      border: 1px solid rgba(255, 152, 0, 0.5);
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px 0;
+      text-align: center;
+    }
+    .menu-item {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid transparent;
+      border-radius: 15px;
+      padding: 15px;
+      margin: 8px 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+    .menu-item:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #ffd700;
+      transform: translateX(-5px);
+    }
+    .menu-item.active {
+      background: rgba(255, 215, 0, 0.2);
+      border-color: #ffd700;
+    }
+    .content-section {
+      display: none;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    .content-section.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .header {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .marquee {
+      white-space: nowrap;
+      overflow: hidden;
+      box-sizing: border-box;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 10px;
+      margin: 15px 0;
+      font-size: 0.9rem;
+    }
+    .marquee span {
+      display: inline-block;
+      padding-left: 100%;
+      animation: marquee 25s linear infinite;
+    }
+    @keyframes marquee {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .data-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 8px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .data-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    .data-title {
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    .data-value {
+      color: #fff;
+      font-size: 1rem;
+    }
+    .featured-buttons {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+      border-radius: 20px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      margin-bottom: 25px;
+    }
+    .featured-icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+    }
+    
+    /* تحسينات للهواتف */
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(30, 60, 114, 0.95);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      z-index: 1000;
+      padding: 10px;
+    }
+    
+    .mobile-menu-item {
+      flex: 1;
+      text-align: center;
+      padding: 10px 5px;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .mobile-menu-item.active {
+      background: rgba(255, 215, 0, 0.3);
+    }
+    
+    .mobile-menu-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .mobile-menu-icon {
+      font-size: 1.2rem;
+      margin-bottom: 5px;
+    }
+    
+    .mobile-menu-text {
+      font-size: 0.7rem;
+    }
+    
+    /* تحسينات التجاوب */
+    @media (max-width: 768px) {
+      .container {
+        padding-left: 15px;
+        padding-right: 15px;
       }
-      return originalRAF.call(window, callback);
-    };
-  }
-
-  // --- First User Interaction Detection ---
-
-  function setupFirstInteractionDetection() {
-    var events = ['touchstart', 'mousedown', 'keydown'];
-
-    function onFirstInteraction() {
-      if (firstInteractionSent) return;
-      firstInteractionSent = true;
-      sendEvent('user_interaction_start', null);
-
-      for (var i = 0; i < events.length; i++) {
-        document.removeEventListener(events[i], onFirstInteraction, true);
+      
+      .mobile-menu {
+        display: flex;
+        justify-content: space-around;
+      }
+      
+      .desktop-menu {
+        display: none;
+      }
+      
+      .featured-buttons {
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+      
+      .featured-icon {
+        font-size: 1.8rem;
+      }
+      
+      .card {
+        margin-bottom: 15px;
+      }
+      
+      .button-featured {
+        padding: 12px 8px;
+        font-size: 0.9rem;
+      }
+      
+      .menu-item {
+        padding: 12px;
+        margin: 5px 0;
+      }
+      
+      .content-section {
+        margin-bottom: 70px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .featured-buttons .grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+      }
+      
+      .marquee {
+        font-size: 0.8rem;
+        padding: 8px;
+      }
+      
+      .button-featured {
+        font-size: 0.85rem;
+        padding: 10px 6px;
       }
     }
 
-    for (var i = 0; i < events.length; i++) {
-      document.addEventListener(events[i], onFirstInteraction, true);
+    /* تصميم جدول الاختبارات */
+    .exam-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
     }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
-  } else {
-    setupFirstInteractionDetection();
-  }
-
-  // --- Auto Error Capture ---
-
-  window.addEventListener('error', function(event) {
-    if (errorSent) return;
-    errorSent = true;
-    sendEvent('error', {
-      message: event.message || 'Unknown error',
-      source: event.filename || '',
-      lineno: event.lineno || 0,
-      colno: event.colno || 0,
-      auto_captured: true
-    });
-  });
-
-  window.addEventListener('unhandledrejection', function(event) {
-    if (errorSent) return;
-    errorSent = true;
-    var reason = event.reason;
-    sendEvent('error', {
-      message: (reason instanceof Error) ? reason.message : String(reason),
-      type: 'unhandled_promise_rejection',
-      auto_captured: true
-    });
-  });
-
-  // --- Public API ---
-
-  window.playablesSDK = {
-    complete: function(score) {
-      sendEvent('game_ended', {
-        score: score,
-        completed: true
-      });
-    },
-
-    error: function(message) {
-      if (errorSent) return;
-      errorSent = true;
-      sendEvent('error', {
-        message: message || 'Unknown error',
-        auto_captured: false
-      });
-    },
-
-    sendEvent: function(eventName, payload) {
-      if (!eventName || typeof eventName !== 'string') return;
-      sendEvent(eventName, payload);
+    
+    .exam-table th,
+    .exam-table td {
+      padding: 12px 8px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     }
-  };
+    
+    .exam-table th {
+      background: rgba(255, 215, 0, 0.3);
+      color: #ffd700;
+      font-weight: bold;
+    }
+    
+    .exam-table tr:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .exam-table-container {
+      overflow-x: auto;
+      margin: 15px 0;
+    }
 
-  // Kick off rAF detection in case no game code calls rAF immediately
-  if (originalRAF) {
-    originalRAF.call(window, onFrame);
-  }
-})();</script>
-<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>انعكاس البلاط في خطيّ مرآة</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<style>
-  :root { color-scheme: light; }
-  body { font-family: 'Cairo', 'Tajawal', sans-serif; background:#ffffff; }
-  .puzzle-grid { display:grid; grid-template-columns: repeat(8, 45px); grid-template-rows: repeat(8, 45px); direction:ltr; position:relative; }
-  .grid-cell { width:45px; height:45px; border:1px solid #e5e7eb; position:relative; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; cursor:pointer; background:#fff; transition: all .15s; user-select:none; }
-  .grid-cell:hover { filter: brightness(0.95); }
-  .grid-cell.locked { cursor:default; }
-  @media (max-width:640px){ .puzzle-grid{ grid-template-columns: repeat(8, 32px); grid-template-rows: repeat(8, 32px);} .grid-cell{ width:32px; height:32px; font-size:14px;} }
-  .mirror-v { position:absolute; left:calc(4 * 45px); top:-4px; bottom:-4px; width:0; border-left:4px dashed #ef4444; z-index:20; pointer-events:none; }
-  .mirror-h { position:absolute; top:calc(4 * 45px); left:-4px; right:-4px; height:0; border-top:4px dashed #ef4444; z-index:20; pointer-events:none; }
-  @media (max-width:640px){ .mirror-v{ left:calc(4 * 32px);} .mirror-h{ top:calc(4 * 32px);} }
-  .letter-badge { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; color:#111827; text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff; pointer-events:none; z-index:5; font-weight:900; }
-  @media (max-width:640px){ .letter-badge{ font-size:16px; } }
-  .color-btn { width:54px; height:54px; border-radius:16px; border:4px solid transparent; cursor:pointer; transition: all .2s; box-shadow: 0 2px 6px rgba(0,0,0,.1); }
-  .color-btn.active { border-color:#111827; transform:translateY(-2px) scale(1.05); box-shadow:0 6px 14px rgba(0,0,0,.18); }
-  .color-btn span { display:none; }
-  .letter-pill { width:44px; height:44px; border-radius:12px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; cursor:pointer; border:2px solid #e5e7eb; transition:.2s; }
-  .letter-pill:hover { background:#111827; color:white; border-color:#111827; transform:translateY(-2px); }
-  .fraction { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; font-size:0.75em; line-height:1; }
-  .fraction > span:first-child { border-bottom:2px solid currentColor; padding:0 4px 2px; }
-  .fraction > span:last-child { padding:2px 4px 0; }
-  .pulse-ring { animation: pulse 1.2s ease-out 2; box-shadow:0 0 0 4px #f59e0b inset; }
-  @keyframes pulse { 0%{box-shadow:0 0 0 0 #f59e0b inset} 100%{box-shadow:0 0 0 8px transparent inset} }
-</style>
+    /* تصميم بطاقات الامتحانات */
+    .exam-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+      border-radius: 15px;
+      padding: 20px;
+      margin: 15px 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .exam-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    .exam-card h3 {
+      color: #ffd700;
+      font-size: 1.3rem;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    /* مؤشر التحميل */
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #ffd700;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* إشعارات */
+    .toast-notification {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      z-index: 9999;
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
 </head>
-<body class="min-h-screen text-gray-900">
-  <div class="max-w-5xl mx-auto px-4 py-6 md:py-10">
-    <!-- Header -->
-    <header class="text-center mb-6">
-      <h1 class="text-[22px] md:text-3xl font-black leading-snug mb-4">
-        إذا تم عكس نمط البلاط الآتي في خطيّ مِرآة، فماذا سيكون لون هذه المربعات؟
-      </h1>
-      <div class="flex flex-wrap justify-center gap-2 md:gap-3 mb-4" id="topLetters">
-        <!-- letters injected -->
-      </div>
-      <p class="text-gray-600 text-base md:text-lg">
-        على ورق مربعات، أعد رسم هذا النمط وتلوين باقي النمط كما تم عكسه في خطيّ المِرآة.
-      </p>
-    </header>
+<body class="min-h-screen">
+  <!-- إشعار Toast -->
+  <div id="toast" class="toast-notification"></div>
 
-    <!-- Puzzle -->
-    <main class="flex flex-col items-center">
-      <div id="puzzle" class="bg-white rounded-[28px] shadow-xl border border-gray-100 p-3 md:p-6">
-        <div class="relative">
-          <div id="grid" class="puzzle-grid rounded-lg overflow-hidden"></div>
-          <div class="mirror-v"></div>
-          <div class="mirror-h"></div>
-        </div>
-      </div>
-
-      <!-- Palette -->
-      <div class="w-full max-w-2xl mt-6">
-        <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="font-bold text-lg">لوحة الألوان</h2>
-            <p class="text-xs text-gray-500">اختر لوناً ثم اضغط على المربع</p>
+  <!-- الهيدر -->
+  <div class="header sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-3">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-3 space-x-reverse">
+          <img src="https://j.top4top.io/p_3327lje811.jpg" alt="شعار المدرسة" class="w-10 h-10 rounded-full logo-glow">
+          <div>
+            <h1 class="text-lg font-bold text-gold-500">منصة تواصل</h1>
+            <p class="text-gray-300 text-xs">مدرسة محمد بن سليمان الغافري</p>
           </div>
-          <div id="palette" class="flex flex-wrap justify-center gap-3 md:gap-4"></div>
         </div>
+        <button onclick="contactWhatsApp()" class="button-whatsapp px-3 py-2 rounded-lg flex items-center space-x-2 space-x-reverse text-sm">
+          <i class="fab fa-whatsapp"></i>
+          <span class="hidden sm:inline">اتصل بنا</span>
+        </button>
       </div>
-
-      <!-- Steps -->
-      <div class="w-full max-w-3xl grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
-        <button id="step1" class="py-3.5 px-4 rounded-2xl bg-gradient-to-b from-violet-600 to-violet-700 text-white font-bold shadow-lg shadow-violet-200 hover:translate-y-[-1px] active:translate-y-[1px] transition">الخطوة ١: اعكس عمودياً</button>
-        <button id="step2" class="py-3.5 px-4 rounded-2xl bg-gradient-to-b from-sky-600 to-sky-700 text-white font-bold shadow-lg shadow-sky-200 hover:translate-y-[-1px] active:translate-y-[1px] transition">الخطوة ٢: اعكس أفقياً</button>
-        <button id="step3" class="py-3.5 px-4 rounded-2xl bg-gradient-to-b from-emerald-600 to-emerald-700 text-white font-bold shadow-lg shadow-emerald-200 hover:translate-y-[-1px] active:translate-y-[1px] transition">الخطوة ٣: اعكس الاثنين معاً</button>
-      </div>
-
-      <div class="w-full max-w-3xl grid grid-cols-2 gap-3 mt-3">
-        <button id="clearCustom" class="py-3 px-4 rounded-2xl bg-white border-2 border-gray-200 font-bold hover:bg-gray-50">مسح تلويني</button>
-        <button id="capture" class="py-3 px-4 rounded-2xl bg-gray-900 text-white font-bold hover:bg-black flex items-center justify-center gap-2">📸 صوّر النشاط</button>
-      </div>
-
-      <!-- Answers -->
-      <div class="w-full max-w-3xl mt-8 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-        <h3 class="font-black text-xl mb-4 text-center">اختبر إجاباتك</h3>
-        <div id="answers" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
-        <button id="check" class="w-full mt-4 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-lg shadow-md">تحقق من الإجابات</button>
-        <div id="result" class="mt-4 text-center hidden"></div>
-      </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="text-center mt-10 pt-6 border-t border-gray-100">
-      <p class="font-bold">إعداد: وليد الصلتي المحمدي</p>
-      <div class="flex justify-center gap-4 mt-2 text-sm">
-        <a href="https://www.instagram.com/walid.saltit/" target="_blank" class="text-pink-600 hover:underline">انستجرام</a>
-        <span class="text-gray-300">|</span>
-        <a href="https://twitter.com/walid_salti" target="_blank" class="text-sky-600 hover:underline">تويتر</a>
-      </div>
-    </footer>
+    </div>
   </div>
 
-<script>
-const toEastern = s => String(s).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+  <!-- المحتوى الرئيسي -->
+  <div class="container mx-auto px-4 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      
+      <!-- القائمة الجانبية للكمبيوتر -->
+      <div class="lg:col-span-1 desktop-menu">
+        <div class="card p-4 sticky top-24">
+          <h2 class="text-xl font-bold text-gold-500 text-center mb-4">القائمة الرئيسية</h2>
+          
+          <div class="space-y-3">
+            <div class="menu-item active" onclick="showSection('welcome', this)">
+              <div class="flex flex-col items-center">
+                <i class="fas fa-home text-xl mb-1"></i>
+                <span class="text-sm">الرئيسية</span>
+              </div>
+            </div>
 
-const COLORS = [
-  {code:'#8BC34A', name:'أخضر'},
-  {code:'#4DD0E1', name:'سماوي'},
-  {code:'#FDD835', name:'أصفر'},
-  {code:'#FB8C00', name:'برتقالي'},
-  {code:'#7B1FA2', name:'بنفسجي'},
-  {code:'#E91E63', name:'أحمر'},
-];
+            <div class="menu-item" onclick="showSection('behavior', this)">
+              <div class="flex flex-col items-center">
+                <i class="fas fa-chart-bar text-xl mb-1"></i>
+                <span class="text-sm">منصة السلوك</span>
+              </div>
+            </div>
 
-const preset = {
-  '1-5':'#8BC34A','1-6':'#4DD0E1','1-7':'#FDD835','1-8':'#4DD0E1',
-  '2-5':'#FB8C00','2-6':'#7B1FA2','2-7':'#8BC34A','2-8':'#7B1FA2',
-  '3-5':'#FDD835','3-6':'#FB8C00','3-7':'#E91E63','3-8':'#4DD0E1',
-  '4-5':'#4DD0E1','4-6':'#8BC34A','4-7':'#E91E63','4-8':'#FDD835',
-};
+            <div class="menu-item" onclick="showSection('schedule', this)">
+              <div class="flex flex-col items-center">
+                <i class="fas fa-clock text-xl mb-1"></i>
+                <span class="text-sm">جدول الحصص</span>
+              </div>
+            </div>
 
-const letters = {
-  'أ':{r:2,c:4},
-  'ب':{r:8,c:8},
-  'ج':{r:4,c:2},
-  'د':{r:7,c:6},
-  'هـ':{r:5,c:4},
-  'و':{r:5,c:2},
-  'ز':{r:7,c:2},
-};
+            <div class="menu-item" onclick="showSection('exams', this)">
+              <div class="flex flex-col items-center">
+                <i class="fas fa-calendar-alt text-xl mb-1"></i>
+                <span class="text-sm">جدول الامتحانات</span>
+              </div>
+            </div>
 
-const correctAnswers = {
-  'أ':'برتقالي',
-  'ب':'سماوي',
-  'ج':'أحمر',
-  'د':'بنفسجي',
-  'هـ':'سماوي',
-  'و':'أحمر',
-  'ز':'أخضر',
-};
+            <div class="menu-item" onclick="showSection('certificates', this)">
+              <div class="flex flex-col items-center">
+                <i class="fas fa-award text-xl mb-1"></i>
+                <span class="text-sm">الشهادات</span>
+              </div>
+            </div>
 
-const grid = document.getElementById('grid');
-let selectedColor = null;
+            <div class="menu-item" onclick="showSection('health', this)">
+              <div class="flex flex-col items-center">
+                <i class="fas fa-heartbeat text-xl mb-1"></i>
+                <span class="text-sm">المدرسة المعززة للصحة</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-// Build grid
-for(let r=1; r<=8; r++){
-  for(let c=1; c<=8; c++){
-    const cell = document.createElement('div');
-    cell.className='grid-cell';
-    cell.dataset.r=r; cell.dataset.c=c; cell.dataset.key=`${r}-${c}`;
-    cell.id=`cell-${r}-${c}`;
-    if(preset[`${r}-${c}`]){
-      cell.style.background = preset[`${r}-${c}`];
-      cell.classList.add('locked');
-      cell.dataset.locked='1';
-    }
-    grid.appendChild(cell);
-  }
-}
+      <!-- المحتوى الديناميكي -->
+      <div class="lg:col-span-3">
+        
+        <!-- قسم الترحيب -->
+        <div id="welcome" class="content-section active">
+          <div class="card p-6 text-center">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gold-500 mb-4">مرحباً بكم في منصة تواصل</h1>
+            <p class="text-lg text-gray-300 mb-6">منصة شاملة لخدمات مدرسة محمد بن سليمان الغافري</p>
+            
+            <div class="marquee">
+              <span>🌟 مدرسة محمد بن سليمان الغافري ترحب بكم 🌟</span>
+            </div>
 
-// Add letters
-Object.entries(letters).forEach(([ltr,pos])=>{
-  const cell = document.getElementById(`cell-${pos.r}-${pos.c}`);
-  const badge = document.createElement('div');
-  badge.className='letter-badge';
-  badge.textContent=ltr;
-  cell.appendChild(badge);
-  cell.dataset.letter=ltr;
-});
+            <!-- الأزرار الرئيسية في الواجهة -->
+            <div class="featured-buttons">
+              <h2 class="text-xl font-bold text-gold-500 mb-6 text-center">الخدمات الرئيسية</h2>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- زر الترحيب -->
+                <div class="text-center">
+                  <div class="featured-icon">
+                    <i class="fas fa-handshake text-gold-500"></i>
+                  </div>
+                  <h3 class="text-lg font-bold mb-3">نرحب بكم</h3>
+                  <p class="text-gray-300 text-sm mb-3">تعرف على رسالتنا ورؤيتنا التعليمية</p>
+                  <button onclick="showWelcomeMessage()" class="button-featured w-full py-3 rounded-lg text-sm">
+                    <i class="fas fa-star mr-1"></i>
+                    رسالة الترحيب
+                  </button>
+                </div>
 
-// Top letters
-const topLetters = document.getElementById('topLetters');
-Object.keys(letters).forEach(l=>{
-  const b = document.createElement('button');
-  b.className='letter-pill';
-  b.innerHTML=`<span>(</span> ${l} <span>)</span>`;
-  b.onclick=()=> highlightCell(letters[l].r, letters[l].c);
-  topLetters.appendChild(b);
-});
+                <!-- زر استفسار الدرجات -->
+                <div class="text-center">
+                  <div class="featured-icon">
+                    <i class="fas fa-chart-line text-gold-500"></i>
+                  </div>
+                  <h3 class="text-lg font-bold mb-3">استفسار الدرجات</h3>
+                  <p class="text-gray-300 text-sm mb-3">اطلع على نتائجك الدراسية بسهولة</p>
+                  <button onclick="showGradesSection()" class="button-featured w-full py-3 rounded-lg text-sm">
+                    <i class="fas fa-search mr-1"></i>
+                    استعلام الدرجات
+                  </button>
+                </div>
 
-function highlightCell(r,c){
-  const cell = document.getElementById(`cell-${r}-${c}`);
-  cell.scrollIntoView({behavior:'smooth', block:'center'});
-  cell.classList.add('pulse-ring');
-  setTimeout(()=>cell.classList.remove('pulse-ring'),1500);
-}
+                <!-- زر المقترحات -->
+                <div class="text-center">
+                  <div class="featured-icon">
+                    <i class="fas fa-comments text-gold-500"></i>
+                  </div>
+                  <h3 class="text-lg font-bold mb-3">المقترحات والآراء</h3>
+                  <p class="text-gray-300 text-sm mb-3">شاركنا آراءك لتطوير المدرسة</p>
+                  <button onclick="openSuggestionsPage(this)" class="button-featured w-full py-3 rounded-lg text-sm">
+                    <i class="fas fa-paper-plane mr-1"></i>
+                    قدم مقترحك
+                  </button>
+                </div>
+              </div>
+            </div>
 
-// Palette
-const palette = document.getElementById('palette');
-COLORS.forEach(col=>{
-  const wrap = document.createElement('div');
-  wrap.className='flex flex-col items-center gap-1';
-  const btn = document.createElement('button');
-  btn.className='color-btn';
-  btn.style.background=col.code;
-  btn.title=col.name;
-  btn.dataset.color=col.code;
-  btn.dataset.name=col.name;
-  btn.onclick=()=>{
-    document.querySelectorAll('.color-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedColor = col.code;
-  };
-  const label = document.createElement('span');
-  label.className='text-xs';
-  label.textContent=col.name;
-  wrap.appendChild(btn); wrap.appendChild(label);
-  palette.appendChild(wrap);
-});
-document.querySelector('.color-btn').click();
+            <!-- الخدمات الأخرى -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+              <div class="card p-4 text-center">
+                <i class="fas fa-chart-bar text-3xl text-gold-500 mb-3"></i>
+                <h3 class="text-lg font-bold mb-2">منصة السلوك</h3>
+                <p class="text-gray-300 text-sm">تابع سلوك الطلاب وتقارير الأداء</p>
+              </div>
+              <div class="card p-4 text-center">
+                <i class="fas fa-calendar text-3xl text-gold-500 mb-3"></i>
+                <h3 class="text-lg font-bold mb-2">الجدول الدراسي</h3>
+                <p class="text-gray-300 text-sm">تعرف على مواعيد الحصص والامتحانات</p>
+              </div>
+              <div class="card p-4 text-center">
+                <i class="fas fa-award text-3xl text-gold-500 mb-3"></i>
+                <h3 class="text-lg font-bold mb-2">الشهادات</h3>
+                <p class="text-gray-300 text-sm">احصل على شهاداتك الإلكترونية</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-// Paint cells
-grid.addEventListener('click', e=>{
-  const cell = e.target.closest('.grid-cell');
-  if(!cell || cell.dataset.locked) return;
-  if(!selectedColor) return;
-  cell.style.background = selectedColor;
-  cell.dataset.custom='1';
-});
+        <!-- قسم استفسار الدرجات -->
+        <div id="grades" class="content-section">
+          <div class="card p-6">
+            <h2 class="text-2xl font-bold text-gold-500 text-center mb-6">استفسار الدرجات</h2>
+            
+            <div class="max-w-md mx-auto">
+              <!-- إدخال الرقم المدني للطالب -->
+              <div class="mb-4">
+                <label for="studentId" class="block text-base font-medium text-gold-500 mb-2">الرقم المدني للطالب:</label>
+                <input type="text" id="studentId" class="w-full p-3 rounded-lg input-field focus:outline-none text-sm" placeholder="أدخل الرقم المدني">
+              </div>
 
-// Steps
-function getColor(r,c){ return document.getElementById(`cell-${r}-${c}`).style.background; }
-function setColor(r,c,color,lock=false){
-  const cell = document.getElementById(`cell-${r}-${c}`);
-  if(cell.dataset.locked && !lock) return;
-  cell.style.background = color;
-  if(lock){ cell.dataset.locked='1'; cell.classList.add('locked'); }
-}
+              <!-- اختيار المادة -->
+              <div class="mb-4">
+                <label for="subjectSelect" class="block text-base font-medium text-gold-500 mb-2">اختر المادة:</label>
+                <select id="subjectSelect" class="w-full p-3 rounded-lg select-field focus:outline-none text-sm">
+                  <option value="">-- اختر المادة --</option>
+                  <option value="social">📚 الدراسات الاجتماعية</option>
+                  <option value="islamic5-9">🕌 التربية الإسلامية (5-9)</option>
+                  <option value="islamic10">🕌 التربية الإسلامية (10)</option>
+                  <option value="arabic5_9">📖 اللغة العربية (5-9)</option>
+                  <option value="arabic10">📖 اللغة العربية (10)</option>
+                  <option value="math5_9">➗ الرياضيات (5-9)</option>
+                  <option value="math10">📊 الرياضيات (10)</option>
+                  <option value="english5_9">📝 الإنجليزية (5-9)</option>
+                  <option value="english10">📝 الإنجليزية (10)</option>
+                  <option value="physics">🔬 الفيزياء</option>
+                  <option value="science">🧪 العلوم</option>
+                  <option value="chemistry">🧫 الكيمياء</option>
+                  <option value="biology">🌿 الأحياء</option>    
+                </select>
+              </div>
 
-document.getElementById('step1').onclick=()=>{
-  for(let r=1;r<=4;r++){
-    for(let c=5;c<=8;c++){
-      const color = getColor(r,c);
-      const c2 = 9 - c;
-      setColor(r,c2,color,true);
-    }
-  }
-};
-document.getElementById('step2').onclick=()=>{
-  for(let r=1;r<=4;r++){
-    for(let c=5;c<=8;c++){
-      const color = getColor(r,c);
-      const r2 = 9 - r;
-      setColor(r2,c,color,true);
-    }
-  }
-};
-document.getElementById('step3').onclick=()=>{
-  for(let r=1;r<=4;r++){
-    for(let c=5;c<=8;c++){
-      const color = getColor(r,c);
-      const r2 = 9 - r; const c2 = 9 - c;
-      setColor(r2,c2,color,true);
-    }
-  }
-};
+              <!-- زر البحث -->
+              <button onclick="fetchGrades(this)" class="w-full py-3 rounded-lg button-primary focus:outline-none mb-4 text-sm">
+                <i class="fas fa-search mr-2"></i>
+                عرض الدرجات
+              </button>
 
-document.getElementById('clearCustom').onclick=()=>{
-  document.querySelectorAll('.grid-cell').forEach(cell=>{
-    if(cell.dataset.custom && !preset[cell.dataset.key]){
-      cell.style.background='';
-      delete cell.dataset.custom;
-    }
-  });
-};
+              <!-- عرض النتائج -->
+              <div id="gradesResult" class="mt-4"></div>
+            </div>
+          </div>
+        </div>
 
-// Answers UI
-const answersDiv = document.getElementById('answers');
-Object.keys(letters).forEach(l=>{
-  const box = document.createElement('div');
-  box.className='flex items-center gap-2 bg-gray-50 rounded-xl p-2 border';
-  box.innerHTML = `<span class="w-8 h-8 flex items-center justify-center font-black bg-white rounded-lg border">${l}</span>`;
-  const sel = document.createElement('select');
-  sel.className='flex-1 bg-transparent outline-none py-1';
-  sel.dataset.letter=l;
-  sel.innerHTML = `<option value="">اختر اللون</option>` + COLORS.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
-  box.appendChild(sel);
-  answersDiv.appendChild(box);
-});
+        <!-- قسم جدول الامتحانات -->
+        <div id="exams" class="content-section">
+          <div class="card p-6">
+            <h2 class="text-2xl font-bold text-gold-500 text-center mb-6">جدول الامتحانات</h2>
+            
+            <!-- بطاقة الامتحانات القصيرة -->
+            <div class="exam-card">
+              <h3 class="text-xl font-bold text-gold-500 mb-4 text-center">📅 جدول متابعة الامتحانات القصيرة</h3>
+              <p class="text-gray-300 text-center mb-4">لمشاهدة جدول الامتحانات القصيرة بشكل مفصل، يرجى الضغط على الزر أدناه</p>
+              <div class="text-center">
+                <button onclick="openShortExams(this)" class="button-primary px-6 py-3 rounded-lg text-sm">
+                  <i class="fas fa-external-link-alt mr-2"></i>
+                  عرض جدول الامتحانات القصيرة
+                </button>
+              </div>
+            </div>
 
-document.getElementById('check').onclick=()=>{
-  let score=0;
-  const total=Object.keys(correctAnswers).length;
-  let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-right">';
-  Object.entries(correctAnswers).forEach(([l,ans])=>{
-    const sel = document.querySelector(`select[data-letter="${l}"]`);
-    const val = sel.value;
-    const ok = val===ans;
-    if(ok) score++;
-    html += `<div class="p-2 rounded-lg ${ok?'bg-green-50 border border-green-200':'bg-red-50 border border-red-200'}">
-      <b>${l}</b>: ${val||'—'} ${ok?'✅':'❌'} <span class="text-gray-500">(${ans})</span>
-    </div>`;
-  });
-  html+='</div>';
-  const result = document.getElementById('result');
-  result.innerHTML = `
-    <div class="text-2xl font-black mb-2">نتيجتك: ${toEastern(score)} من ${toEastern(total)}</div>
-    ${html}
-  `;
-  result.classList.remove('hidden');
-  window.scrollTo({top:result.offsetTop-80, behavior:'smooth'});
-};
+            <!-- بطاقة امتحانات نهاية الفصل -->
+            <div class="exam-card">
+              <h3 class="text-xl font-bold text-gold-500 mb-4 text-center">📝 جدول إختبارات نهاية الفصل الدراسي الأول</h3>
+              <p class="text-gray-300 text-center mb-4">لمشاهدة جدول امتحانات نهاية الفصل الدراسي الأول بشكل مفصل، يرجى الضغط على الزر أدناه</p>
+              <div class="text-center">
+                <button onclick="openFinalExams(this)" class="button-primary px-6 py-3 rounded-lg text-sm">
+                  <i class="fas fa-external-link-alt mr-2"></i>
+                  عرض جدول امتحانات نهاية الفصل
+                </button>
+              </div>
+            </div>
 
-// Capture
-document.getElementById('capture').onclick=async()=>{
-  const puzzle = document.getElementById('puzzle');
-  const canvas = await html2canvas(puzzle, {backgroundColor:'#ffffff', scale:2, useCORS:true});
-  canvas.toBlob(async (blob)=>{
-    const file = new File([blob], 'walid-saltit-mirror2.png', {type:'image/png'});
-    try{
-      if(navigator.canShare && navigator.canShare({files:[file]}) && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)){
-        await navigator.share({files:[file], title:'انعكاس البلاط', text:'نشاط انعكاس البلاط في خطي مرآة'});
-      }else{
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href=url; a.download='walid-saltit-mirror2.png'; document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
+            <!-- ملاحظة -->
+            <div class="bg-blue-500/20 border border-blue-500/50 rounded-lg p-4 mt-6">
+              <div class="flex items-start">
+                <i class="fas fa-info-circle text-blue-300 mt-1 mr-3"></i>
+                <div>
+                  <h4 class="text-blue-300 font-bold mb-2">ملاحظة هامة:</h4>
+                  <p class="text-sm text-blue-200">يتم تحديث جداول الامتحانات بشكل دوري. يرجى التأكد من زيارة الروابط أعلاه للحصول على أحدث التحديثات والتفاصيل الكاملة.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- باقي الأقسام -->
+        <div id="behavior" class="content-section">
+          <div class="card p-6 text-center">
+            <h2 class="text-2xl font-bold text-gold-500 mb-4">منصة السلوك</h2>
+            <p class="text-lg mb-4">سيتم تفعيل هذه الخدمة قريباً</p>
+            <button onclick="openExternal('https://mohdschool.github.io/behavior/', this)" class="button-secondary px-4 py-2 rounded-lg text-sm">
+              زيارة المنصة الحالية
+            </button>
+          </div>
+        </div>
+
+        <div id="schedule" class="content-section">
+          <div class="card p-6 text-center">
+            <h2 class="text-2xl font-bold text-gold-500 mb-4">جدول الحصص</h2>
+            <p class="text-lg mb-4">سيتم تفعيل هذه الخدمة قريباً</p>
+            <button onclick="openExternal('https://moh7211.edupage.org/timetable/', this)" class="button-secondary px-4 py-2 rounded-lg text-sm">
+              زيارة الجدول الحالي
+            </button>
+          </div>
+        </div>
+
+        <div id="certificates" class="content-section">
+          <div class="card p-6 text-center">
+            <h2 class="text-2xl font-bold text-gold-500 mb-4">الشهادات</h2>
+            <p class="text-lg mb-4">سيتم تفعيل هذه الخدمة قريباً</p>
+            <button onclick="openExternal('https://mohdschool.github.io/certificate/', this)" class="button-secondary px-4 py-2 rounded-lg text-sm">
+              زيارة المنصة الحالية
+            </button>
+          </div>
+        </div>
+
+        <div id="health" class="content-section">
+          <div class="card p-6 text-center">
+            <h2 class="text-2xl font-bold text-gold-500 mb-4">المدرسة المعززة للصحة</h2>
+            <p class="text-lg mb-4">سيتم تفعيل هذه الخدمة قريباً</p>
+            <button onclick="openExternal('https://mohdschool.github.io/12A/', this)" class="button-secondary px-4 py-2 rounded-lg text-sm">
+              زيارة المنصة الحالية
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- قائمة الهاتف -->
+  <div class="mobile-menu">
+    <div class="mobile-menu-item active" onclick="showMobileSection('welcome')">
+      <div class="flex flex-col items-center">
+        <i class="fas fa-home mobile-menu-icon"></i>
+        <span class="mobile-menu-text">الرئيسية</span>
+      </div>
+    </div>
+    <div class="mobile-menu-item" onclick="showMobileSection('behavior')">
+      <div class="flex flex-col items-center">
+        <i class="fas fa-chart-bar mobile-menu-icon"></i>
+        <span class="mobile-menu-text">السلوك</span>
+      </div>
+    </div>
+    <div class="mobile-menu-item" onclick="showMobileSection('exams')">
+      <div class="flex flex-col items-center">
+        <i class="fas fa-calendar-alt mobile-menu-icon"></i>
+        <span class="mobile-menu-text">الامتحانات</span>
+      </div>
+    </div>
+    <div class="mobile-menu-item" onclick="showMobileSection('schedule')">
+      <div class="flex flex-col items-center">
+        <i class="fas fa-clock mobile-menu-icon"></i>
+        <span class="mobile-menu-text">الجدول</span>
+      </div>
+    </div>
+    <div class="mobile-menu-item" onclick="showMobileSection('certificates')">
+      <div class="flex flex-col items-center">
+        <i class="fas fa-award mobile-menu-icon"></i>
+        <span class="mobile-menu-text">الشهادات</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- التذييل -->
+  <div class="bg-black/20 py-4 mt-8">
+    <div class="container mx-auto px-4 text-center">
+      <p class="text-sm">جميع الحقوق محفوظة © لإدارة مدرسة محمد بن سليمان الغافري</p>
+    </div>
+  </div>
+
+  <!-- نافذة الترحيب المنبثقة -->
+  <div id="welcomeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden px-4">
+    <div class="card p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto relative">
+      <button onclick="closeWelcomeModal()" class="absolute top-4 left-4 text-gray-500 hover:text-white text-xl">
+        <i class="fas fa-times"></i>
+      </button>
+      <h2 class="text-2xl font-bold text-gold-500 text-center mb-4">🌟 مرحباً بكم في منصة تواصل 🌟</h2>
+      <div class="text-right space-y-3 text-base leading-7">
+        <p>إلى شركائنا في بناء هذا الصرح التعليمي الشامخ (<strong>أولياء أمور طلابنا الكرام</strong>) وإلى أبطال مدرستنا طلابنا النجباء الذين يشكلون بوصلتنا نحو المستقبل…</p>
+        <p>من هنا … من مدرسة محمد بن سليمان الغافري ننطلق برؤية واضحة ورسالة تحمل في طياتها طموحًا لا يعرف الحدود.</p>
+        <p>نقدم لكم منصتنا التعليمية (<strong>منصة تواصل</strong>) ليس كإضافة عابرة بل كدليلٍ حيّ على سعينا المستمر نحو التميز واستلهامًا لمسؤوليتنا المشتركة في تحقيق الريادة.</p>
+        <p>نحن لا نبحث عن مجرّد تصدر القوائم ولا نركض خلف أضواء الشهرة بل نطمح لأن تكون هذه المدرسة منارةً تعليميةً أولى في سلطنة عُمان لا لذاتها بل لأجل أبنائها ليحجزوا مواقعهم في مقدمة المشهد العلمي ، في أرقى الجامعات ، وفي أعظم الميادين الفكرية والمعرفية محليًا وعالميًا.</p>
+        <p class="text-center text-xl font-bold text-gold-500 mt-4">نحن هنا لأن المستقبل يبدأ من هنا.</p>
+      </div>
+      <button onclick="closeWelcomeModal()" class="button-primary w-full mt-4 py-3 rounded-lg text-sm">
+        <i class="fas fa-check mr-2"></i>
+        فهمت، شكراً لك
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // ==================== دوال عرض الأقسام ====================
+    function showSection(sectionId, element) {
+      // التحقق من وجود العنصر
+      if (!sectionId) return;
+      
+      // إخفاء جميع الأقسام
+      document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      
+      // إزالة التفعيل من جميع عناصر القائمة
+      document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      
+      // عرض القسم المحدد
+      const targetSection = document.getElementById(sectionId);
+      if (targetSection) {
+        targetSection.classList.add('active');
+      } else {
+        console.warn('القسم المطلوب غير موجود:', sectionId);
+        return;
       }
-    }catch(e){ console.log(e); }
-  });
-};
+      
+      // تفعيل عنصر القائمة المحدد
+      if (element) {
+        element.classList.add('active');
+      }
+      
+      // تحديث قائمة الهاتف
+      updateMobileMenu(sectionId);
+    }
 
-// Convert any western digits in static text to Eastern on load
-function walk(node){
-  if(node.nodeType===3){
-    node.textContent = toEastern(node.textContent);
-  }else{
-    node.childNodes.forEach(walk);
-  }
-}
-walk(document.body);
-</script>
+    function showMobileSection(sectionId) {
+      // التحقق من وجود العنصر
+      if (!sectionId) return;
+      
+      // إخفاء جميع الأقسام
+      document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      
+      // عرض القسم المحدد
+      const targetSection = document.getElementById(sectionId);
+      if (targetSection) {
+        targetSection.classList.add('active');
+      }
+      
+      // تحديث قائمة الهاتف
+      updateMobileMenu(sectionId);
+    }
+
+    function updateMobileMenu(activeSection) {
+      document.querySelectorAll('.mobile-menu-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      
+      // تفعيل العنصر المناسب في قائمة الهاتف
+      document.querySelectorAll('.mobile-menu-item').forEach(item => {
+        const onclickAttr = item.getAttribute('onclick');
+        if (onclickAttr && onclickAttr.includes(activeSection)) {
+          item.classList.add('active');
+        }
+      });
+    }
+
+    // ==================== دوال التنقل ====================
+    function showGradesSection() {
+      // تفعيل قسم الدرجات
+      document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      document.getElementById('grades').classList.add('active');
+      
+      // تحديث القوائم
+      document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      updateMobileMenu('grades');
+      
+      // رسالة ترحيبية
+      showToast('مرحباً بك في خدمة استعلام الدرجات', 'info');
+    }
+
+    // ==================== دوال النوافذ المنبثقة ====================
+    function showWelcomeMessage() {
+      const modal = document.getElementById('welcomeModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+      }
+    }
+
+    function closeWelcomeModal() {
+      const modal = document.getElementById('welcomeModal');
+      if (modal) {
+        modal.classList.add('hidden');
+      }
+    }
+
+    // ==================== دوال التواصل ====================
+    function contactWhatsApp() {
+      const phoneNumber = "0096895665009";
+      const message = "مرحباً، أريد الاستفسار عن منصة تواصل لمدرسة محمد بن سليمان الغافري";
+      const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+      
+      try {
+        window.open(whatsappURL, '_blank');
+      } catch (error) {
+        console.error('خطأ في فتح الواتساب:', error);
+        showToast('حدث خطأ في فتح الواتساب', 'error');
+      }
+    }
+
+    // ==================== دوال فتح الروابط الخارجية ====================
+    function openExternal(url, button) {
+      if (!url) {
+        showToast('عذراً، الرابط غير متاح حالياً', 'warning');
+        return;
+      }
+      
+      // تعطيل الزر مؤقتاً
+      if (button) {
+        button.disabled = true;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<span class="loading-spinner"></span> جاري التحميل...';
+        
+        setTimeout(() => {
+          button.disabled = false;
+          button.innerHTML = originalText;
+        }, 2000);
+      }
+      
+      try {
+        // محاولة فتح الرابط في نافذة جديدة
+        const newWindow = window.open(url, '_blank');
+        
+        // التحقق مما إذا كان قد تم منع النافذة المنبثقة
+        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+          showToast('يرجى السماح للنوافذ المنبثقة في المتصفح', 'warning');
+        }
+      } catch (error) {
+        console.error('خطأ في فتح الرابط:', error);
+        showToast('حدث خطأ في فتح الرابط', 'error');
+      }
+    }
+
+    function openSuggestionsPage(button) {
+      openExternal('https://mohdschool.github.io/suggestions/', button);
+    }
+
+    function openShortExams(button) {
+      openExternal('https://mohdschool.github.io/7211/', button);
+    }
+
+    function openFinalExams(button) {
+      openExternal('https://mohdschool.github.io/Finalexams/', button);
+    }
+
+    // ==================== دالة إظهار الإشعارات ====================
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      
+      // تعيين لون الخلفية حسب نوع الإشعار
+      let backgroundColor = 'rgba(0, 0, 0, 0.8)';
+      if (type === 'success') backgroundColor = 'rgba(76, 175, 80, 0.9)';
+      if (type === 'error') backgroundColor = 'rgba(244, 67, 54, 0.9)';
+      if (type === 'warning') backgroundColor = 'rgba(255, 152, 0, 0.9)';
+      
+      toast.style.backgroundColor = backgroundColor;
+      toast.textContent = message;
+      toast.style.display = 'block';
+      
+      // إخفاء الإشعار بعد 3 ثواني
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3000);
+    }
+
+    // ==================== دالة استعلام الدرجات ====================
+    async function fetchGrades(button) {
+      const studentId = document.getElementById('studentId').value.trim();
+      const subject = document.getElementById('subjectSelect').value;
+      const resultDiv = document.getElementById('gradesResult');
+
+      // التحقق من المدخلات
+      if (!studentId) {
+        resultDiv.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-circle ml-2"></i>يرجى إدخال رقم الطالب.</div>';
+        return;
+      }
+      
+      if (!subject) {
+        resultDiv.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-circle ml-2"></i>يرجى اختيار المادة.</div>';
+        return;
+      }
+
+      // تعطيل الزر أثناء التحميل
+      if (button) {
+        button.disabled = true;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<span class="loading-spinner"></span> جاري البحث...';
+      }
+
+      // روابط المواد
+      const subjectLinks = {
+        social: "",
+        islamic5_9: "",
+        islamic10: "",
+        arabic5_9: "",
+        arabic10: "",
+        math10: "",
+        math5_9: "",
+        english5_9: "",
+        english10: "",
+        physics: "",
+        science: "",
+        chemistry: "",
+        biology: ""
+      };
+
+      // عرض رسالة التحميل
+      resultDiv.innerHTML = '<div class="text-center"><div class="loading-spinner mx-auto mb-2"></div><p class="mt-2 text-sm">جاري تحميل البيانات...</p></div>';
+
+      try {
+        // التحقق من وجود الرابط
+        if (!subjectLinks[subject]) {
+          throw new Error('الرابط غير موجود للمادة المحددة');
+        }
+
+        // محاولة جلب البيانات مع خيارات CORS
+        const response = await fetch(subjectLinks[subject], {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'Accept': 'text/csv'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`فشل في تحميل البيانات: ${response.status}`);
+        }
+        
+        const csvData = await response.text();
+        
+        // معالجة بيانات CSV
+        const rows = csvData.split('\n').map(row => row.split(',').map(cell => cell.trim()));
+        
+        if (rows.length < 2) {
+          throw new Error('لا توجد بيانات كافية');
+        }
+
+        const headers = rows[0];
+        // البحث عن الطالب (نفترض أن الرقم المدني في العمود الثاني)
+        const studentRow = rows.find(row => row[1] && row[1].trim() === studentId);
+
+        if (!studentRow) {
+          resultDiv.innerHTML = '<div class="error-message"><i class="fas fa-exclamation-circle ml-2"></i>❌ لم يتم العثور على بيانات لهذا الطالب.</div>';
+          return;
+        }
+
+        // عرض النتائج
+        let dataHTML = `<h3 class="text-lg font-bold text-gold-500 mb-4 text-center">نتائج البحث:</h3>`;
+        headers.forEach((header, index) => {
+          if (header && header.trim() && studentRow[index] && studentRow[index].trim()) {
+            dataHTML += `
+              <div class="data-card">
+                <div class="data-title">${header.trim()}</div>
+                <div class="data-value">${studentRow[index].trim()}</div>
+              </div>
+            `;
+          }
+        });
+
+        resultDiv.innerHTML = dataHTML;
+        showToast('تم العثور على البيانات بنجاح', 'success');
+
+      } catch (error) {
+        console.error('خطأ في جلب البيانات:', error);
+        resultDiv.innerHTML = `
+          <div class="warning-message">
+            <i class="fas fa-exclamation-triangle ml-2"></i>
+            تم إيقاف خدمة استعلام الدرجات مؤقتًا خلال فترة الاختبارات، على أن يُستأنف العمل بها بعد انتهاء الاختبارات.
+            <br><br>
+            <strong>متمنين لكم التوفيق والنجاح.</strong>
+          </div>
+        `;
+      } finally {
+        // إعادة تفعيل الزر
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = '<i class="fas fa-search mr-2"></i> عرض الدرجات';
+        }
+      }
+    }
+
+    // ==================== معالج الأخطاء العام ====================
+    window.addEventListener('error', function(event) {
+      console.error('خطأ عام:', event.error);
+      showToast('حدث خطأ غير متوقع، يرجى تحديث الصفحة', 'error');
+    });
+
+    // ==================== تهيئة الصفحة ====================
+    document.addEventListener('DOMContentLoaded', function() {
+      // تحديث قائمة الهاتف عند التحميل
+      updateMobileMenu('welcome');
+      
+      // التحقق من وجود العناصر الأساسية
+      console.log('تم تحميل الصفحة بنجاح');
+    });
+  </script>
 </body>
-</html>
+</html
